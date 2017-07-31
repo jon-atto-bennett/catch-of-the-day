@@ -7,7 +7,6 @@ import sampleFishes from '../sample-fishes'
 import base from '../base'
 
 class App extends React.Component {
-
   constructor () {
     super()
 
