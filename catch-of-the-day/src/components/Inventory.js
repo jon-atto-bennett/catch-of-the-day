@@ -1,11 +1,19 @@
 import React from 'react'
 import AddFishForm from './AddFishForm'
+import base from '../base'
 
 class Inventory extends React.Component {
   constructor () {
     super()
     this.renderInventory = this.renderInventory.bind(this)
     this.handleChange = this.handleChange.bind(this)
+    this.renderLogin = this.renderLogin.bind(this)
+    this.authenticate = this.authenticate.bind(this)
+    this.authHandler = this.authHandler.bind(this)
+    this.state = {
+      uid: null,
+      owner: null
+    }
   }
 
   handleChange (e, key) {
@@ -16,6 +24,36 @@ class Inventory extends React.Component {
       [e.target.name]: e.target.value
     }
     this.props.updateFish(key, updatedFish)
+  }
+
+  authenticate (provider) {
+    base.auth().signInWithPopup(provider)
+    .then(function (result) {
+      const authData = result.user
+      console.log(authData)
+    })
+  }
+// eslint-disable-next-line
+  authHandler (err, authData) {
+    console.log('handler')
+  }
+
+  renderLogin () {
+    return (
+      <nav className='login'>
+        <h2>Inventory</h2>
+        <p>Sign in to manage your stores inventory</p>
+        <button className='github' onClick={() => this.authenticate(new base.auth.GithubAuthProvider())}>
+          Login with Github
+        </button>
+        <button className='facebook' onClick={() => this.authenticate(new base.auth.FacebookAuthProvider())}>
+          Login with Facebook
+        </button>
+        <button className='twitter' onClick={() => this.authenticate(new base.auth.TwitterAuthProvider())}>
+          Login with Twitter
+        </button>
+      </nav>
+    )
   }
 
   renderInventory (key) {
@@ -40,9 +78,25 @@ class Inventory extends React.Component {
     )
   }
   render () {
+    const logout = <button>Log Out</button>
+    // check to see if logged in
+    if (!this.state.uid) {
+      return <div>{this.renderLogin()}</div>
+    }
+
+    if (this.state.uid !== this.state.owner) {
+      return (
+        <div>
+          <p>Sorry you are not the owner of this store!</p>
+          {logout}
+        </div>
+      )
+    }
+
     return (
       <div>
         <h2>Inventory</h2>
+        {logout}
         {Object.keys(this.props.fishes).map(this.renderInventory)}
         <AddFishForm addFish={this.props.addFish} />
         <button onClick={this.props.loadSamples}>Load Fishes</button>
