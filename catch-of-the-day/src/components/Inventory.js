@@ -9,11 +9,20 @@ class Inventory extends React.Component {
     this.handleChange = this.handleChange.bind(this)
     this.renderLogin = this.renderLogin.bind(this)
     this.authenticate = this.authenticate.bind(this)
+    this.logout = this.logout.bind(this)
     this.authHandler = this.authHandler.bind(this)
     this.state = {
       uid: null,
       owner: null
     }
+  }
+
+  componentDidMount () {
+    base.onAuth((user) => {
+      if (user) {
+        this.authHandler(null, {user})
+      }
+    })
   }
 
   handleChange (e, key) {
@@ -40,13 +49,19 @@ class Inventory extends React.Component {
 
     base.auth().signInWithPopup(signInProvider).then((result) => {
    // The signed-in user info.
-      let authData = result.user
+      let authData = result
       this.authHandler(null, authData)
     }).catch(function (error) {
    // Handle Errors here.
       this.authHandler(error)
     })
   }
+
+  logout () {
+    base.unauth()
+    this.setState({uid: null})
+  }
+
 // eslint-disable-next-line
   authHandler (err, authData) {
     if (err) {
@@ -61,12 +76,12 @@ class Inventory extends React.Component {
       // claim it is our own if there is no owner already
       if (!data.owner) {
         storeRef.set({
-          owner: authData.uid
+          owner: authData.user.uid
         })
       }
       this.setState({
-        uid: authData.uid,
-        owner: data.owner || authData.uid
+        uid: authData.user.uid,
+        owner: data.owner || authData.user.uid
       })
     })
   }
@@ -111,7 +126,7 @@ class Inventory extends React.Component {
     )
   }
   render () {
-    const logout = <button>Log Out!</button>
+    const logout = <button onClick={this.logout}>Log Out!</button>
     // check to see if logged in
     if (!this.state.uid) {
       return <div>{this.renderLogin()}</div>
