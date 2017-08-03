@@ -27,15 +27,48 @@ class Inventory extends React.Component {
   }
 
   authenticate (provider) {
-    base.auth().signInWithPopup(provider)
-    .then(function (result) {
-      const authData = result.user
-      console.log(authData)
+    let signInProvider
+    if (provider === 'facebook') {
+      signInProvider = new base.auth.FacebookAuthProvider()
+    }
+    if (provider === 'github') {
+      signInProvider = new base.auth.GithubAuthProvider()
+    }
+    if (provider === 'twitter') {
+      signInProvider = new base.auth.TwitterAuthProvider()
+    }
+
+    base.auth().signInWithPopup(signInProvider).then((result) => {
+   // The signed-in user info.
+      let authData = result.user
+      this.authHandler(null, authData)
+    }).catch(function (error) {
+   // Handle Errors here.
+      this.authHandler(error)
     })
   }
 // eslint-disable-next-line
   authHandler (err, authData) {
-    console.log('handler')
+    if (err) {
+      console.log(err)
+      return
+    }
+    // grab the store info
+    const storeRef = base.database().ref(this.props.storeId)
+    // query the firebase once for the store database
+    storeRef.once('value', (snapshot) => {
+      const data = snapshot.val() || {}
+      // claim it is our own if there is no owner already
+      if (!data.owner) {
+        storeRef.set({
+          owner: authData.uid
+        })
+      }
+      this.setState({
+        uid: authData.uid,
+        owner: data.owner || authData.uid
+      })
+    })
   }
 
   renderLogin () {
@@ -43,13 +76,13 @@ class Inventory extends React.Component {
       <nav className='login'>
         <h2>Inventory</h2>
         <p>Sign in to manage your stores inventory</p>
-        <button className='github' onClick={() => this.authenticate(new base.auth.GithubAuthProvider())}>
+        <button className='github' onClick={() => this.authenticate('github')}>
           Login with Github
         </button>
-        <button className='facebook' onClick={() => this.authenticate(new base.auth.FacebookAuthProvider())}>
+        <button className='facebook' onClick={() => this.authenticate('facebook')}>
           Login with Facebook
         </button>
-        <button className='twitter' onClick={() => this.authenticate(new base.auth.TwitterAuthProvider())}>
+        <button className='twitter' onClick={() => this.authenticate('twitter')}>
           Login with Twitter
         </button>
       </nav>
@@ -78,12 +111,12 @@ class Inventory extends React.Component {
     )
   }
   render () {
-    const logout = <button>Log Out</button>
+    const logout = <button>Log Out!</button>
     // check to see if logged in
     if (!this.state.uid) {
       return <div>{this.renderLogin()}</div>
     }
-
+    // check to see if they are owner of current store
     if (this.state.uid !== this.state.owner) {
       return (
         <div>
@@ -109,7 +142,8 @@ Inventory.propTypes = {
   fishes: React.PropTypes.object.isRequired,
   removeFish: React.PropTypes.func.isRequired,
   addFish: React.PropTypes.func.isRequired,
-  loadSamples: React.PropTypes.func.isRequired
+  loadSamples: React.PropTypes.func.isRequired,
+  storeId: React.PropTypes.string.isRequired
 }
 
 export default Inventory
